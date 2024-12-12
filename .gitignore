@@ -1,0 +1,9 @@
+.pio
+*.DS_Store
+.vscode/
+
+lib/**
+backup/**
+
+# For now, ignore all tests
+test/** 

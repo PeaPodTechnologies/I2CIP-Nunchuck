@@ -7,6 +7,8 @@
 
 #define NUNCHUCK_READLEN 6
 #define NUNCHUCK_ADDRESS 0x52
+// #define NUNCHUCK_ADDRESS 0xA4
+#define NUNCHUCK_DELAY 10
 
 typedef struct {
   uint8_t joy_x;

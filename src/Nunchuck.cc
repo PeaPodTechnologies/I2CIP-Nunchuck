@@ -1,4 +1,4 @@
-#include <nunchuck.h>
+#include <Nunchuck.h>
 
 bool Nunchuck::_id_set = false;
 char Nunchuck::_id[I2CIP_ID_SIZE];
@@ -17,12 +17,12 @@ void Nunchuck::loadID(void) {
   Nunchuck::_id[idlen] = '\0';
   Nunchuck::_id_set = true;
 
-  #ifdef WIIPOD_DEBUG_SERIAL
+  #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
-    WIIPOD_DEBUG_SERIAL.print(F("Nunchuck ID Loaded: '"));
-    WIIPOD_DEBUG_SERIAL.print(Nunchuck::_id);
-    WIIPOD_DEBUG_SERIAL.print(F("' @"));
-    WIIPOD_DEBUG_SERIAL.println((uintptr_t)(&Nunchuck::_id[0]), HEX);
+    I2CIP_DEBUG_SERIAL.print(F("Nunchuck ID Loaded: '"));
+    I2CIP_DEBUG_SERIAL.print(Nunchuck::_id);
+    I2CIP_DEBUG_SERIAL.print(F("' @"));
+    I2CIP_DEBUG_SERIAL.println((uintptr_t)(&Nunchuck::_id[0]), HEX);
     DEBUG_DELAY();
   #endif
 }
@@ -53,15 +53,6 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
   }
 
   i2cip_errorlevel_t errlev;
-
-  if(!initialized) {
-    errlev = writeRegister((uint8_t)0xF0, (uint8_t)0x55, false);
-    I2CIP_ERR_BREAK(errlev);
-    errlev = writeRegister((uint8_t)0xFB, (uint8_t)0x00, false);
-    I2CIP_ERR_BREAK(errlev);
-    initialized = true;
-  }
-
   #ifdef I2CIP_DEBUG_SERIAL
     DEBUG_DELAY();
     I2CIP_DEBUG_SERIAL.print(F("[NUNCHUCK] "));
@@ -76,18 +67,42 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
     DEBUG_DELAY();
   #endif
 
-  // delay(10); // temporary
+  if(!initialized) {
+    errlev = writeRegister((uint8_t)0xF0, (uint8_t)0x55, false);
+    I2CIP_ERR_BREAK(errlev);
 
-  errlev = writeByte((uint8_t)0x00, false);
-  I2CIP_ERR_BREAK(errlev);
+    // delay(NUNCHUCK_DELAY);
+
+    errlev = writeRegister((uint8_t)0xFB, (uint8_t)0x00, false);
+    I2CIP_ERR_BREAK(errlev);
+    // initialized = true;
+    delay(NUNCHUCK_DELAY);
+  }
+  //  else {
+  //   // Ping
+  //   errlev = ping(this->getFQA(), false, false);
+  //   I2CIP_ERR_BREAK(errlev);
+  // }
+
+  // delay(NUNCHUCK_DELAY);
 
   uint8_t temp[NUNCHUCK_READLEN];
   size_t len = NUNCHUCK_READLEN;
-  // errlev = readRegister((uint8_t)0x00, temp, len, false);
-  errlev = read((uint8_t*)temp, len, false); // No null-terminator; we want raw data
-  I2CIP_ERR_BREAK(errlev);
+  // errlev = readRegister((uint8_t)0x00, temp, len, false, true, false);
+  // I2CIP_ERR_BREAK(errlev);
 
-  if(len < NUNCHUCK_READLEN) {
+  I2CIP_FQA_TO_WIRE(fqa)->beginTransmission(I2CIP_FQA_SEG_DEVADR(fqa));
+
+  // write internal register address - most significant byte first
+  if(I2CIP_FQA_TO_WIRE(fqa)->write((uint8_t)0) != 1) return I2CIP_ERR_SOFT;
+  
+  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission(false) != 0) return I2CIP_ERR_HARD;
+
+  delayMicroseconds(275);
+
+  errlev = read((uint8_t*)temp, len, false, true, false);
+
+  if(len != NUNCHUCK_READLEN || (temp[0] == 0xFF && temp[1] == 0xFF && temp[2] == 0xFF && temp[3] == 0xFF && temp[4] == 0xFF && temp[5] == 0xFF)) {
     return I2CIP_ERR_SOFT;
   }
 
