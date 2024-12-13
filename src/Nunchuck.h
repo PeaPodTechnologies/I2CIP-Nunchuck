@@ -1,9 +1,15 @@
 #ifndef WIIPOD_NUNCHUCK_H
 #define WIIPOD_NUNCHUCK_H
 
+#define I2CIP_NUNCHUCK_USE_SCREEN 1 // Uncomment to enable screen support
+
 #include <Arduino.h>
 
 #include <I2CIP.h>
+
+#ifdef I2CIP_NUNCHUCK_USE_SCREEN
+#include <SSD1306.h>
+#endif
 
 #define NUNCHUCK_READLEN 6
 #define NUNCHUCK_ADDRESS 0x52
@@ -37,6 +43,9 @@ class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunch
       #endif
     public:
       void printToScreen(Stream& out, uint8_t width, uint8_t height, bool border = true, bool circle = true);
+      #ifdef I2CIP_NUNCHUCK_USE_SCREEN
+      i2cip_errorlevel_t printToScreen(SSD1306* out, uint8_t width, uint8_t height, bool border = true, bool circle = true);
+      #endif
 
       Nunchuck(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
 

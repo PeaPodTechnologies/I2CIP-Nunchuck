@@ -75,7 +75,7 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
 
     errlev = writeRegister((uint8_t)0xFB, (uint8_t)0x00, false);
     I2CIP_ERR_BREAK(errlev);
-    // initialized = true;
+    initialized = true;
     delay(NUNCHUCK_DELAY);
   }
   //  else {
@@ -96,7 +96,7 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
   // write internal register address - most significant byte first
   if(I2CIP_FQA_TO_WIRE(fqa)->write((uint8_t)0) != 1) return I2CIP_ERR_SOFT;
   
-  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission(false) != 0) return I2CIP_ERR_HARD;
+  if(I2CIP_FQA_TO_WIRE(fqa)->endTransmission() != 0) return I2CIP_ERR_HARD;
 
   delayMicroseconds(275);
 
@@ -174,3 +174,44 @@ void Nunchuck::printToScreen(Stream& out, uint8_t width, uint8_t height, bool bo
   
   if(border){ out.print('|'); for(int x = 0; x < width; x++) { out.print('-'); } out.print('|'); }
 }
+
+#ifdef I2CIP_NUNCHUCK_USE_SCREEN
+i2cip_errorlevel_t Nunchuck::printToScreen(SSD1306* out, uint8_t width, uint8_t height, bool border, bool circle) {
+  if(out == nullptr || out->getOutput() == nullptr) return I2CIP_ERR_NONE; // No harm no foul
+  // width *= 2; // accounts for character aspect ratio; trying to make it square
+  wiipod_nunchuck_t data = this->getCache();
+
+  // Pixel position
+  int _x = ((double)data.joy_x / 255.0) * width;
+  int _y = ((255.0 - (double)data.joy_y) / 255.0) * height; // Y-invert
+
+  bool bits[height][width] = {0};
+
+  if(border) {
+    for(int x = 0; x < width; x++) { bits[0][x] = true; bits[height-1][x] = true; }
+    for(int y = 0; y < height; y++) { bits[y][0] = true; bits[y][width-1] = true; }
+  }
+
+  bits[_y][_x] = true;
+
+  if(circle) {
+    for(int x = 0; x < width; x++) {
+      double unit_x = 1.0 - ((2.0 * x) / width); // -1.0 to 1.0
+      uint8_t fx = sqrt(1.0 - (unit_x * unit_x)); // 0 to 1
+      uint8_t y = (height*(1-fx))/2.0; // .5*height to 0
+      bits[y][x] = true;
+      y = (height*(1+fx))/2.0; // height to .5height
+      bits[y][x] = true;
+    }
+  }
+
+  size_t len = (uint8_t)((width*height/8)+0.5);
+  uint8_t buf[len] = {0};
+  for(int i = 0; i < width*height; i++) {
+    buf[i/8] <<= 1;
+    buf[i/8] |= (bits[i/width][i%width] ? 1 : 0);
+  }
+
+  return out->getOutput()->failSet(buf);
+}
+#endif
