@@ -15,6 +15,11 @@
 #define NUNCHUCK_ADDRESS 0x52
 // #define NUNCHUCK_ADDRESS 0xA4
 #define NUNCHUCK_DELAY 10
+#ifdef I2CIP_USE_GUARANTEES
+#define I2CIP_GUARANTEE_NUNCHUCK 0x4E554E43 // "NUNCH"
+class Nunchuck;
+I2CIP_GUARANTEE_DEFINE(Nunchuck, I2CIP_GUARANTEE_NUNCHUCK);
+#endif
 
 typedef struct {
   uint8_t joy_x;
@@ -26,17 +31,24 @@ typedef struct {
   bool z;
 } wiipod_nunchuck_t;
 
-const char wiipod_nunchuck_id_progmem[] PROGMEM = {"NUNCHUCK"};
+#define I2CIP_NUNCHUCK_ID "NUNCHUCK"
 
-class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunchuck_t, void*> {
+class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunchuck_t, void*>
+  #ifdef I2CIP_USE_GUARANTEES
+  , public Guarantee<Nunchuck>
+  #endif
+  {
+  I2CIP_DEVICE_CLASS_BUNDLE(Nunchuck, I2CIP_NUNCHUCK_ID);
+  I2CIP_INPUT_USE_TOSTRING(wiipod_nunchuck_t, "X:%u Y:%u | A:(%u, %u, %u) | C:%c | Z:%c"); // will this work? I think so printf("%...", struct) is valid
+
+  #ifdef I2CIP_USE_GUARANTEES
+  I2CIP_CLASS_USE_GUARANTEE(Nunchuck, I2CIP_GUARANTEE_NUNCHUCK);
+  #endif
+
   private:
-      static bool _id_set;
-      static char _id[]; // to be loaded from progmem
-
       bool initialized = false;
 
       void* const isnull = nullptr;
-      Nunchuck(const i2cip_fqa_t& fqa);
 
       #ifdef MAIN_CLASS_NAME
       friend class MAIN_CLASS_NAME;
@@ -47,17 +59,9 @@ class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunch
       i2cip_errorlevel_t printToScreen(SSD1306* out, uint8_t width, uint8_t height, bool border = true, bool circle = true);
       #endif
 
-      Nunchuck(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
-
-      static Device* nunchuckFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id);
-      static Device* nunchuckFactory(const i2cip_fqa_t& fqa);
-
-      static void loadID(void);
+      Nunchuck(i2cip_fqa_t fqa, const i2cip_id_t& id);
 
       virtual ~Nunchuck() { }
-
-      // static const char* getStaticIDBuffer() { return Nunchuck::_id_set ? Nunchuck::_id : nullptr; } // Harsh but fair
-      static const char* getStaticIDBuffer() { return Nunchuck::_id; }
 
       /**
        * Read from the Nunchuck.

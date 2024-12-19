@@ -1,50 +1,11 @@
 #include <Nunchuck.h>
 
-bool Nunchuck::_id_set = false;
-char Nunchuck::_id[I2CIP_ID_SIZE];
-
 using namespace I2CIP;
 
-void Nunchuck::loadID(void) {
-  uint8_t idlen = strlen_P(wiipod_nunchuck_id_progmem);
+I2CIP_DEVICE_INIT_STATIC_ID(Nunchuck, I2CIP_NUNCHUCK_ID)
+// I2CIP_DEVICES_INIT_PROGMEM_ID(Nunchuck)
 
-  // Read in PROGMEM
-  for (uint8_t k = 0; k < idlen; k++) {
-    char c = pgm_read_byte_near(wiipod_nunchuck_id_progmem + k);
-    Nunchuck::_id[k] = c;
-  }
-
-  Nunchuck::_id[idlen] = '\0';
-  Nunchuck::_id_set = true;
-
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Nunchuck ID Loaded: '"));
-    I2CIP_DEBUG_SERIAL.print(Nunchuck::_id);
-    I2CIP_DEBUG_SERIAL.print(F("' @"));
-    I2CIP_DEBUG_SERIAL.println((uintptr_t)(&Nunchuck::_id[0]), HEX);
-    DEBUG_DELAY();
-  #endif
-}
-
-// Handles ID pointer assignment too
-// NEVER returns nullptr, unless out of memory
-Device* Nunchuck::nunchuckFactory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) {
-  if(!Nunchuck::_id_set || id == nullptr) {
-    loadID();
-
-    (Device*)(new Nunchuck(fqa, id == nullptr ? _id : id));
-  }
-
-  return (Device*)(new Nunchuck(fqa, id));
-}
-
-Device* Nunchuck::nunchuckFactory(const i2cip_fqa_t& fqa) { return nunchuckFactory(fqa, Nunchuck::getStaticIDBuffer()); }
-
-Nunchuck::Nunchuck(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : Device(fqa, id), InputInterface<wiipod_nunchuck_t, void*>((Device*)this) { }
-Nunchuck::Nunchuck(const i2cip_fqa_t& fqa) : Nunchuck(fqa, Nunchuck::_id) { }
-
-// Nunchuck::Nunchuck(const uint8_t& wire, const uint8_t& module, const uint8_t& addr) : Nunchuck(I2CIP_FQA_CREATE(wire, module, I2CIP_MUX_BUS_DEFAULT, addr)) { }
+Nunchuck::Nunchuck(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::InputInterface<wiipod_nunchuck_t, void*>((I2CIP::Device*)this) { }
 
 i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
   // 0. Check args
