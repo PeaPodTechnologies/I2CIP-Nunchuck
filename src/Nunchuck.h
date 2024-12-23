@@ -22,13 +22,13 @@ I2CIP_GUARANTEE_DEFINE(Nunchuck, I2CIP_GUARANTEE_NUNCHUCK);
 #endif
 
 typedef struct {
-  uint8_t joy_x;
-  uint8_t joy_y;
-  uint16_t accel_x;
-  uint16_t accel_y;
-  uint16_t accel_z;
   bool c;
   bool z;
+  uint8_t x;
+  uint8_t y;
+  uint16_t a_x;
+  uint16_t a_y;
+  uint16_t a_z;
 } wiipod_nunchuck_t;
 
 #define I2CIP_NUNCHUCK_ID "NUNCHUCK"
@@ -39,7 +39,9 @@ class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunch
   #endif
   {
   I2CIP_DEVICE_CLASS_BUNDLE(Nunchuck, I2CIP_NUNCHUCK_ID);
-  I2CIP_INPUT_USE_TOSTRING(wiipod_nunchuck_t, "X:%u Y:%u | A:(%u, %u, %u) | C:%c | Z:%c"); // will this work? I think so printf("%...", struct) is valid
+  I2CIP_INPUT_USE_RESET(wiipod_nunchuck_t, void*, void* const);
+  I2CIP_INPUT_USE_TOSTRING(wiipod_nunchuck_t, "{\"x\": %u, \"y\": %u, \"a\": {\"x\": %u, \"y\": %u, \"z\": %u}, \"c\": %u, \"z\": %u}");
+  I2CIP_INPUT_ADD_PRINTCACHE(wiipod_nunchuck_t, "Joy: (%u, %u), Acc: (%u, %u, %u), C: %c, Z: %c"); // will this work? I think so printf("%...", struct) is valid
 
   #ifdef I2CIP_USE_GUARANTEES
   I2CIP_CLASS_USE_GUARANTEE(Nunchuck, I2CIP_GUARANTEE_NUNCHUCK);
@@ -47,8 +49,6 @@ class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunch
 
   private:
       bool initialized = false;
-
-      void* const isnull = nullptr;
 
       #ifdef MAIN_CLASS_NAME
       friend class MAIN_CLASS_NAME;
@@ -69,9 +69,6 @@ class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<wiipod_nunch
        * @param args Number of bytes to read
        **/
       i2cip_errorlevel_t get(wiipod_nunchuck_t& dest, void* const& args = nullptr) override;
-
-      void clearCache(void) override;
-      void* const& getDefaultA(void) const override { return this->isnull; };
 };
 
 #endif

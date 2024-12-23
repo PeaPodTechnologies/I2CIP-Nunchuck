@@ -2,8 +2,10 @@
 
 using namespace I2CIP;
 
-I2CIP_DEVICE_INIT_STATIC_ID(Nunchuck, I2CIP_NUNCHUCK_ID)
-// I2CIP_DEVICES_INIT_PROGMEM_ID(Nunchuck)
+#define NUNCHUCK_DEFAULT_CACHE { .c = false, .z = false, .x = 0, .y = 0, .a_x = 0, .a_y = 0, .a_z = 0 }
+
+I2CIP_DEVICE_INIT_STATIC_ID(Nunchuck, I2CIP_NUNCHUCK_ID);
+I2CIP_INPUT_INIT_RESET(Nunchuck, wiipod_nunchuck_t, NUNCHUCK_DEFAULT_CACHE, void*, nullptr);
 
 Nunchuck::Nunchuck(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::InputInterface<wiipod_nunchuck_t, void*>((I2CIP::Device*)this) { }
 
@@ -80,26 +82,15 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
   // Serial.print("0b");
   // Serial.println(temp[5], BIN);
 
-  dest.joy_x = temp[0];
-  dest.joy_y = temp[1];
-  dest.accel_x = (temp[2] << 2) | ((temp[5] & 0b11000000) >> 6);
-  dest.accel_y = (temp[3] << 2) | ((temp[5] & 0b00110000) >> 4);
-  dest.accel_z = (temp[4] << 2) | ((temp[5] & 0b00001100) >> 2);
+  dest.x = temp[0];
+  dest.y = temp[1];
+  dest.a_x = (temp[2] << 2) | ((temp[5] & 0b11000000) >> 6);
+  dest.a_y = (temp[3] << 2) | ((temp[5] & 0b00110000) >> 4);
+  dest.a_z = (temp[4] << 2) | ((temp[5] & 0b00001100) >> 2);
   dest.c = !(temp[5] & 0b00000010);
   dest.z = !(temp[5] & 0b00000001);
 
   return errlev;
-}
-
-// G - Getter type: char* (null-terminated; writable heap)
-void Nunchuck::clearCache(void) {
-  this->setCache({ 0, 0, 0, 0, 0, false, false });
-
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("Nunchuck Cache Cleared (Zeroed)\n"));
-    DEBUG_DELAY();
-  #endif
 }
 
 void Nunchuck::printToScreen(Stream& out, uint8_t width, uint8_t height, bool border, bool circle) {
@@ -107,8 +98,8 @@ void Nunchuck::printToScreen(Stream& out, uint8_t width, uint8_t height, bool bo
   wiipod_nunchuck_t data = this->getCache();
 
   // Pixel position
-  int _x = ((double)data.joy_x / 255.0) * width;
-  int _y = ((255.0 - (double)data.joy_y) / 255.0) * height; // Y-invert
+  int _x = ((double)data.x / 255.0) * width;
+  int _y = ((255.0 - (double)data.y) / 255.0) * height; // Y-invert
 
   if(border){ out.print('|'); for(int x = 0; x < width; x++) { out.print('-'); } out.print('|'); }
   out.print('\n');
@@ -143,8 +134,8 @@ i2cip_errorlevel_t Nunchuck::printToScreen(SSD1306* out, uint8_t width, uint8_t 
   wiipod_nunchuck_t data = this->getCache();
 
   // Pixel position
-  int _x = ((double)data.joy_x / 255.0) * width;
-  int _y = ((255.0 - (double)data.joy_y) / 255.0) * height; // Y-invert
+  int _x = ((double)data.x / 255.0) * width;
+  int _y = ((255.0 - (double)data.y) / 255.0) * height; // Y-invert
 
   bool bits[height][width] = {0};
 
