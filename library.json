@@ -1,0 +1,14 @@
+{
+  "name": "I2CIP-Nunchuck",
+  "version": "0.1.0",
+  "dependencies": [
+    {
+      "name": "I2CIP"
+    },
+    {
+      "name": "Wire"
+    }
+  ],
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32", "atmelavr"]
+}

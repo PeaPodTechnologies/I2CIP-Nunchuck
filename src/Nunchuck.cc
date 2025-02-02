@@ -5,11 +5,23 @@ using namespace I2CIP;
 #define NUNCHUCK_DEFAULT_CACHE { .c = false, .z = false, .x = 0, .y = 0, .a_x = 0, .a_y = 0, .a_z = 0 }
 
 I2CIP_DEVICE_INIT_STATIC_ID(Nunchuck, I2CIP_NUNCHUCK_ID);
-I2CIP_INPUT_INIT_RESET(Nunchuck, wiipod_nunchuck_t, NUNCHUCK_DEFAULT_CACHE, void*, nullptr);
+I2CIP_INPUT_INIT_RESET(Nunchuck, i2cip_nunchuck_t, NUNCHUCK_DEFAULT_CACHE, void*, nullptr);
 
-Nunchuck::Nunchuck(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::InputInterface<wiipod_nunchuck_t, void*>((I2CIP::Device*)this) { }
+Nunchuck::Nunchuck(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::InputInterface<i2cip_nunchuck_t, void*>((I2CIP::Device*)this) { }
 
-i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
+i2cip_errorlevel_t Nunchuck::begin(bool setbus) { return Nunchuck::_begin(this->fqa, setbus); }
+i2cip_errorlevel_t Nunchuck::_begin(const i2cip_fqa_t& fqa, bool setbus) {
+  i2cip_errorlevel_t errlev = writeRegister(fqa, (uint8_t)0xF0, (uint8_t)0x55, setbus);
+  I2CIP_ERR_BREAK(errlev);
+
+  errlev = writeRegister(fqa, (uint8_t)0xFB, (uint8_t)0x00, false);
+  I2CIP_ERR_BREAK(errlev);
+
+  delay(NUNCHUCK_DELAY);
+  return errlev;
+}
+
+i2cip_errorlevel_t Nunchuck::get(i2cip_nunchuck_t& dest, void* const& args) {
   // 0. Check args
   if(args != nullptr) {
     return I2CIP_ERR_SOFT;
@@ -29,25 +41,6 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
 
     DEBUG_DELAY();
   #endif
-
-  if(!initialized) {
-    errlev = writeRegister((uint8_t)0xF0, (uint8_t)0x55, false);
-    I2CIP_ERR_BREAK(errlev);
-
-    // delay(NUNCHUCK_DELAY);
-
-    errlev = writeRegister((uint8_t)0xFB, (uint8_t)0x00, false);
-    I2CIP_ERR_BREAK(errlev);
-    initialized = true;
-    delay(NUNCHUCK_DELAY);
-  }
-  //  else {
-  //   // Ping
-  //   errlev = ping(this->getFQA(), false, false);
-  //   I2CIP_ERR_BREAK(errlev);
-  // }
-
-  // delay(NUNCHUCK_DELAY);
 
   uint8_t temp[NUNCHUCK_READLEN];
   size_t len = NUNCHUCK_READLEN;
@@ -87,15 +80,15 @@ i2cip_errorlevel_t Nunchuck::get(wiipod_nunchuck_t& dest, void* const& args) {
   dest.a_x = (temp[2] << 2) | ((temp[5] & 0b11000000) >> 6);
   dest.a_y = (temp[3] << 2) | ((temp[5] & 0b00110000) >> 4);
   dest.a_z = (temp[4] << 2) | ((temp[5] & 0b00001100) >> 2);
-  dest.c = !(temp[5] & 0b00000010);
   dest.z = !(temp[5] & 0b00000001);
+  dest.c = !(temp[5] & 0b00000010);
 
   return errlev;
 }
 
 void Nunchuck::printToScreen(Stream& out, uint8_t width, uint8_t height, bool border, bool circle) {
   // width *= 2; // accounts for character aspect ratio; trying to make it square
-  wiipod_nunchuck_t data = this->getCache();
+  i2cip_nunchuck_t data = this->getCache();
 
   // Pixel position
   int _x = ((double)data.x / 255.0) * width;
@@ -131,7 +124,7 @@ void Nunchuck::printToScreen(Stream& out, uint8_t width, uint8_t height, bool bo
 i2cip_errorlevel_t Nunchuck::printToScreen(SSD1306* out, uint8_t width, uint8_t height, bool border, bool circle) {
   if(out == nullptr || out->getOutput() == nullptr) return I2CIP_ERR_NONE; // No harm no foul
   // width *= 2; // accounts for character aspect ratio; trying to make it square
-  wiipod_nunchuck_t data = this->getCache();
+  i2cip_nunchuck_t data = this->getCache();
 
   // Pixel position
   int _x = ((double)data.x / 255.0) * width;
