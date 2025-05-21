@@ -15,11 +15,6 @@
 #define I2CIP_NUNCHUCK_ADDRESS 0x52
 // #define NUNCHUCK_ADDRESS 0xA4
 #define NUNCHUCK_DELAY 10
-#ifdef I2CIP_USE_GUARANTEES
-#define I2CIP_GUARANTEE_NUNCHUCK 0x4E554E43 // "NUNCH"
-class Nunchuck;
-I2CIP_GUARANTEE_DEFINE(Nunchuck, I2CIP_GUARANTEE_NUNCHUCK);
-#endif
 
 typedef struct {
   bool c;
@@ -33,19 +28,11 @@ typedef struct {
 
 #define I2CIP_NUNCHUCK_ID "NUNCHUCK"
 
-class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<i2cip_nunchuck_t, void*>
-  #ifdef I2CIP_USE_GUARANTEES
-  , public Guarantee<Nunchuck>
-  #endif
-  {
+class Nunchuck : public I2CIP::Device, public I2CIP::InputInterface<i2cip_nunchuck_t, void*> {
   I2CIP_DEVICE_CLASS_BUNDLE(Nunchuck, I2CIP_NUNCHUCK_ID);
   I2CIP_INPUT_USE_RESET(i2cip_nunchuck_t, void*, void* const);
   I2CIP_INPUT_USE_TOSTRING(i2cip_nunchuck_t, "{\"x\": %u, \"y\": %u, \"a\": {\"x\": %u, \"y\": %u, \"z\": %u}, \"c\": %u, \"z\": %u}");
   I2CIP_INPUT_ADD_PRINTCACHE(i2cip_nunchuck_t, "Joy: (%u, %u), Acc: (%u, %u, %u), C: %c, Z: %c"); // will this work? I think so printf("%...", struct) is valid
-
-  #ifdef I2CIP_USE_GUARANTEES
-  I2CIP_CLASS_USE_GUARANTEE(Nunchuck, I2CIP_GUARANTEE_NUNCHUCK);
-  #endif
 
   private:
     #ifdef MAIN_CLASS_NAME
