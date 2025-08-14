@@ -7,6 +7,9 @@ using namespace I2CIP;
 I2CIP_DEVICE_INIT_STATIC_ID(Nunchuck, I2CIP_NUNCHUCK_ID);
 I2CIP_INPUT_INIT_RESET(Nunchuck, i2cip_nunchuck_t, NUNCHUCK_DEFAULT_CACHE, void*, nullptr);
 
+void Nunchuck::parseJSONArgs(I2CIP::i2cip_args_io_t& argsDest, JsonVariant argsA, JsonVariant argsS, JsonVariant argsB) { } // Takes no args
+void Nunchuck::deleteArgs(I2CIP::i2cip_args_io_t& args) { } // No args to delete
+
 Nunchuck::Nunchuck(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::InputInterface<i2cip_nunchuck_t, void*>((I2CIP::Device*)this) { }
 
 i2cip_errorlevel_t Nunchuck::begin(bool setbus) { return Nunchuck::_begin(this->fqa, setbus); }
